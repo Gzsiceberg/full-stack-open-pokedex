@@ -8,6 +8,8 @@ app.use(express.static('dist'))
 
 app.get('/health', (req, res) => {
   res.send('ok')
+  // eslint-disable-next-line no-console
+  console.log('health check ok')
 })
 
 app.listen(PORT, () => {
