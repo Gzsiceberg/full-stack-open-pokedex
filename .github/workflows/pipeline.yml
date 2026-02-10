@@ -72,13 +72,14 @@ jobs:
           url: ${{ secrets.FEISHU_ROBOT_WEBHOOK_URL }}
           msg_type: text
           content: |
-            [SUCCESS] Deployment succeeded
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Version: ${{ needs.tag_release.outputs.new_tag }}
-            Commit: ${{ github.sha }}
-            Message: ${{ github.event.head_commit.message }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            text: |
+              [SUCCESS] Deployment succeeded
+              Repository: ${{ github.repository }}
+              Branch: ${{ github.ref_name }}
+              Version: ${{ needs.tag_release.outputs.new_tag }}
+              Commit: ${{ github.sha }}
+              Message: ${{ github.event.head_commit.message }}
+              Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Notify failure (build failed)
         if: ${{ needs.simple_deployment_pipeline.result == 'failure' }}
@@ -87,15 +88,16 @@ jobs:
           url: ${{ secrets.FEISHU_ROBOT_WEBHOOK_URL }}
           msg_type: text
           content: |
-            [FAILURE] Build failed
-            Repository: ${{ github.repository }}
-            Event: ${{ github.event_name }}
-            Branch/Ref: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Commit message: ${{ github.event.head_commit.message || github.event.pull_request.title }}
-            Author: ${{ github.event.head_commit.author.name || github.event.pull_request.user.login }}
-            Triggered by: ${{ github.actor }}
-            Workflow: ${{ github.workflow }}
-            Job: simple_deployment_pipeline
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            text: |
+              [FAILURE] Build failed
+              Repository: ${{ github.repository }}
+              Event: ${{ github.event_name }}
+              Branch/Ref: ${{ github.ref_name }}
+              Commit: ${{ github.sha }}
+              Commit message: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+              Author: ${{ github.event.head_commit.author.name || github.event.pull_request.user.login }}
+              Triggered by: ${{ github.actor }}
+              Workflow: ${{ github.workflow }}
+              Job: simple_deployment_pipeline
+              Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             
