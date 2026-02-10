@@ -45,15 +45,57 @@ jobs:
     needs: [simple_deployment_pipeline]
     if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
     runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.bump_version.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Bump version and push tag
+        id: bump_version
         uses: anothrNick/github-tag-action@1.64.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: v
           DEFAULT_BUMP: patch
           RELEASE_BRANCHES: main
+
+  notify_feishu:
+    needs: [simple_deployment_pipeline, tag_release]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify success (deployed + tagged)
+        if: ${{ github.event_name == 'push' && needs.simple_deployment_pipeline.result == 'success' && needs.tag_release.result == 'success' }}
+        uses: foxundermoon/feishu-action@v2
+        with:
+          url: ${{ secrets.FEISHU_ROBOT_WEBHOOK_URL }}
+          msg_type: text
+          content: |
+            [SUCCESS] Deployment succeeded
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Version: ${{ needs.tag_release.outputs.new_tag }}
+            Commit: ${{ github.sha }}
+            Message: ${{ github.event.head_commit.message }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Notify failure (build failed)
+        if: ${{ needs.simple_deployment_pipeline.result == 'failure' }}
+        uses: foxundermoon/feishu-action@v2
+        with:
+          url: ${{ secrets.FEISHU_ROBOT_WEBHOOK_URL }}
+          msg_type: text
+          content: |
+            [FAILURE] Build failed
+            Repository: ${{ github.repository }}
+            Event: ${{ github.event_name }}
+            Branch/Ref: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Commit message: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+            Author: ${{ github.event.head_commit.author.name || github.event.pull_request.user.login }}
+            Triggered by: ${{ github.actor }}
+            Workflow: ${{ github.workflow }}
+            Job: simple_deployment_pipeline
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             
