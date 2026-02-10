@@ -12,30 +12,7 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-latest
-    outputs:
-      skip: ${{ steps.check.outputs.skip }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - id: check
-        name: Check for #skip in pushed commits
-        run: |
-          if [ "${{ github.event_name }}" != "push" ]; then
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if git log --format=%B "${{ github.event.before }}..${{ github.sha }}" | grep -qi '#skip'; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
   simple_deployment_pipeline:
-    needs: [check_skip]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,12 +38,12 @@ jobs:
         run: npm run test:e2e
         
       - name: Deploy to production
-        if: ${{ github.event_name == 'push' && needs.check_skip.outputs.skip != 'true' }}
+        if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
         run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
       
   tag_release:
-    needs: [simple_deployment_pipeline, check_skip]
-    if: ${{ github.event_name == 'push' && needs.check_skip.outputs.skip != 'true' }}
+    needs: [simple_deployment_pipeline]
+    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
